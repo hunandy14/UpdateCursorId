@@ -8,6 +8,14 @@
 irm bit.ly/4jimLvR|iex; Update-CursorId
 ```
 
+執行之後預設會詢問你要不要覆蓋
+
+![](img/Snipaste_2025-01-14_16-33-14.png)
+
+
+
+<br><br><br><br>
+
 詳細用法
 
 ```ps1
