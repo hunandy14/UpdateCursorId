@@ -1,3 +1,7 @@
+# 設定嚴格模式和錯誤處理
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
 # 生成 Cursor ID 的主要函式
 function New-CursorId {
     # 生成随机 ID
@@ -42,7 +46,6 @@ function Update-JsonProperty {
     )
     
     begin {
-        if (-not (Test-Path $Path)) { throw "File not found: $Path" }
         $storageContent = Get-Content $Path -Raw | ConvertFrom-Json
         
         if ($WhatIfPreference) {
@@ -54,38 +57,72 @@ function Update-JsonProperty {
     } 
     
     process {
-        # 先取得值
-        $oldValue = $storageContent.$($KeyValuePair.Key)
-        $newValue = $KeyValuePair.Value
-        
-        # 使用 Write-Host 來確保輸出格式
-        if ($PSCmdlet.ShouldProcess("$($KeyValuePair.Key)", "Update property")) {
-            $storageContent.$($KeyValuePair.Key) = $newValue
-            Write-Host "$($KeyValuePair.Key.PadRight(30)) " -NoNewline -ForegroundColor Yellow
-            Write-Host $newValue -ForegroundColor DarkYellow
-        }
-        if ($WhatIfPreference) {
+        try {
+            # 驗證屬性是否存在
+            if (-not $storageContent.PSObject.Properties.Name.Contains($KeyValuePair.Key)) {
+                throw "Property '$($KeyValuePair.Key)' does not exist in the JSON file"
+            }
+            
+            # 先取得值
+            $oldValue = $storageContent.$($KeyValuePair.Key)
+            $newValue = $KeyValuePair.Value
+            
+            # 更新值 (WhatIf的時候不更新)
+            if ($PSCmdlet.ShouldProcess("$($KeyValuePair.Key)", "Update property")) {
+                Write-Host "[" -NoNewline -ForegroundColor DarkGray
+                Write-Host "STAGE" -NoNewline -ForegroundColor DarkCyan
+                Write-Host "]" -NoNewline -ForegroundColor DarkGray
+                Write-Host " Preparing to update property..." -ForegroundColor DarkGray
+                $storageContent.$($KeyValuePair.Key) = $newValue
+            }
+            
+            # 顯示更新內容
             Write-Host "  [" -NoNewline -ForegroundColor DarkGray
             Write-Host $KeyValuePair.Key -NoNewline -ForegroundColor Yellow
             Write-Host "]" -ForegroundColor DarkGray
             
-            Write-Host "  Current  : " -NoNewline -ForegroundColor DarkGray
+            Write-Host "    Current  : " -NoNewline -ForegroundColor DarkGray
             Write-Host $oldValue -ForegroundColor DarkGray
             
-            Write-Host "  Update to: " -NoNewline -ForegroundColor DarkGray
+            Write-Host "    Update to: " -NoNewline -ForegroundColor DarkGray
             Write-Host "$newValue`n" -ForegroundColor DarkYellow
+        }
+        catch {
+            Write-Host "[" -NoNewline -ForegroundColor DarkGray
+            Write-Host "FAILED" -NoNewline -ForegroundColor Red
+            Write-Host "] " -NoNewline -ForegroundColor DarkGray
+            Write-Host "Failed to update property" -ForegroundColor DarkGray
+            Write-Host "  Error: " -NoNewline -ForegroundColor DarkGray
+            Write-Host $_.Exception.Message -ForegroundColor Red
+            throw
         }
     } 
     
     end {
         if ($PSCmdlet.ShouldProcess($Path, "Save changes to file")) {
-            $storageContent | ConvertTo-Json -Depth 10 | Set-Content $Path -Encoding UTF8
-            Write-Host "`nSuccessfully updated JSON file: " -NoNewline
-            Write-Host $Path -ForegroundColor Cyan
+            try {
+                # 保存到文件
+                $storageContent | ConvertTo-Json -Depth 10 | Set-Content $Path -Encoding UTF8
+                Write-Host "[" -NoNewline -ForegroundColor DarkGray
+                Write-Host "COMMIT" -NoNewline -ForegroundColor Green
+                Write-Host "] " -NoNewline -ForegroundColor DarkGray
+                Write-Host "All changes have been saved to file" -ForegroundColor DarkGray
+                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
+                Write-Host $Path -ForegroundColor Cyan
+            }
+            catch {
+                Write-Host "[" -NoNewline -ForegroundColor DarkGray
+                Write-Host "FAILED" -NoNewline -ForegroundColor Red
+                Write-Host "]" -NoNewline -ForegroundColor DarkGray
+                Write-Host " Failed to save changes" -ForegroundColor DarkGray
+                Write-Host "  Error: " -NoNewline -ForegroundColor DarkGray
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                throw
+            }
         }
     }
 }
 
 # 生成新的 ID 並直接更新 storage.json
-New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
+# New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json")
