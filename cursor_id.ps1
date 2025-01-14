@@ -32,6 +32,7 @@ function New-CursorId {
 
 # 更新 JSON 文件的屬性
 function Update-JsonProperty {
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject]$KeyValuePair,
@@ -43,19 +44,48 @@ function Update-JsonProperty {
     begin {
         if (-not (Test-Path $Path)) { throw "File not found: $Path" }
         $storageContent = Get-Content $Path -Raw | ConvertFrom-Json
-    } process {
-        $storageContent.$($KeyValuePair.Key) = $KeyValuePair.Value
-        Write-Host "$($KeyValuePair.Key.PadRight(30)) $($KeyValuePair.Value)"
-    } end {
-        $storageContent | ConvertTo-Json -Depth 10 | Set-Content $Path -Encoding UTF8
-        Write-Host "`nSuccessfully updated JSON file: $Path"
+        
+        if ($WhatIfPreference) {
+            Write-Host "`n【Preview Changes】" -ForegroundColor Magenta
+            Write-Host "Target File: " -NoNewline
+            Write-Host $Path -ForegroundColor Cyan
+            Write-Host ""
+        }
+    } 
+    
+    process {
+        # 先取得值
+        $oldValue = $storageContent.$($KeyValuePair.Key)
+        $newValue = $KeyValuePair.Value
+        
+        # 使用 Write-Host 來確保輸出格式
+        if ($PSCmdlet.ShouldProcess("$($KeyValuePair.Key)", "Update property")) {
+            $storageContent.$($KeyValuePair.Key) = $newValue
+            Write-Host "$($KeyValuePair.Key.PadRight(30)) " -NoNewline -ForegroundColor Yellow
+            Write-Host $newValue -ForegroundColor DarkYellow
+        }
+        if ($WhatIfPreference) {
+            Write-Host "  [" -NoNewline -ForegroundColor DarkGray
+            Write-Host $KeyValuePair.Key -NoNewline -ForegroundColor Yellow
+            Write-Host "]" -ForegroundColor DarkGray
+            
+            Write-Host "  Current  : " -NoNewline -ForegroundColor DarkGray
+            Write-Host $oldValue -ForegroundColor DarkGray
+            
+            Write-Host "  Update to: " -NoNewline -ForegroundColor DarkGray
+            Write-Host "$newValue`n" -ForegroundColor DarkYellow
+        }
+    } 
+    
+    end {
+        if ($PSCmdlet.ShouldProcess($Path, "Save changes to file")) {
+            $storageContent | ConvertTo-Json -Depth 10 | Set-Content $Path -Encoding UTF8
+            Write-Host "`nSuccessfully updated JSON file: " -NoNewline
+            Write-Host $Path -ForegroundColor Cyan
+        }
     }
 }
 
 # 生成新的 ID 並直接更新 storage.json
-New-CursorId
+New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json")
-
-# 如果需要顯示新生成的 ID，可以使用 Tee-Object
-# New-CursorId | Tee-Object -Variable newIds | Update-JsonProperty
-
