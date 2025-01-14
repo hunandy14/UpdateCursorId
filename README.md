@@ -23,6 +23,6 @@ irm bit.ly/4jimLvR|iex; Update-CursorId
 irm https://raw.githubusercontent.com/hunandy14/UpdateCursorId/refs/heads/main/Update-CursorId.ps1 | iex
 
 # 生成新的 ID 並更新 Cursor 的 storage.json
-New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA ".\Cursor\User\globalStorage\storage.json")
+New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA "\Cursor\User\globalStorage\storage.json")
 
 ```
