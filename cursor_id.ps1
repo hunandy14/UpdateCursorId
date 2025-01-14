@@ -36,7 +36,7 @@ function New-CursorId {
 
 # 更新 JSON 文件的屬性
 function Update-JsonProperty {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject]$KeyValuePair,
@@ -63,20 +63,17 @@ function Update-JsonProperty {
                 throw "Property '$($KeyValuePair.Key)' does not exist in the JSON file"
             }
             
-            # 先取得值
+            # 更新值
             $oldValue = $storageContent.$($KeyValuePair.Key)
             $newValue = $KeyValuePair.Value
-            
-            # 更新值 (WhatIf的時候不更新)
-            if ($PSCmdlet.ShouldProcess("$($KeyValuePair.Key)", "Update property")) {
-                Write-Host "[" -NoNewline -ForegroundColor DarkGray
-                Write-Host "STAGE" -NoNewline -ForegroundColor DarkCyan
-                Write-Host "]" -NoNewline -ForegroundColor DarkGray
-                Write-Host " Preparing to update property..." -ForegroundColor DarkGray
-                $storageContent.$($KeyValuePair.Key) = $newValue
-            }
+            $storageContent.$($KeyValuePair.Key) = $newValue
             
             # 顯示更新內容
+            Write-Host "[" -NoNewline -ForegroundColor DarkGray
+            Write-Host "STAGE" -NoNewline -ForegroundColor DarkCyan
+            Write-Host "]" -NoNewline -ForegroundColor DarkGray
+            Write-Host " Preparing to update property..." -ForegroundColor DarkGray
+            
             Write-Host "  [" -NoNewline -ForegroundColor DarkGray
             Write-Host $KeyValuePair.Key -NoNewline -ForegroundColor Yellow
             Write-Host "]" -ForegroundColor DarkGray
@@ -99,6 +96,12 @@ function Update-JsonProperty {
     } 
     
     end {
+        # 收集所有已更新的屬性
+        $confirmMessage = "您確定要更新以下屬性嗎？`n"
+        $confirmMessage += ($storageContent.PSObject.Properties | ForEach-Object {
+            "  $($_.Name): $($_.Value)"
+        } | Out-String)
+
         if ($PSCmdlet.ShouldProcess($Path, "Save changes to file")) {
             try {
                 # 保存到文件
@@ -123,6 +126,10 @@ function Update-JsonProperty {
     }
 }
 
-# 生成新的 ID 並直接更新 storage.json
+# 生成新的 ID 並更新測試用 storage.json
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
+# New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -Confirm:$false
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json")
+
+# 生成新的 ID 並更新 Cursor 的 storage.json
+# New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA ".\Cursor\User\globalStorage\storage.json") -WhatIf
