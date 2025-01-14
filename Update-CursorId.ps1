@@ -126,6 +126,11 @@ function Update-JsonProperty {
     }
 }
 
+# 更新 Cursor 的 ID
+function Update-CursorId {
+    New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA ".\Cursor\User\globalStorage\storage.json")
+}
+
 # 生成新的 ID 並更新測試用 storage.json
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -Confirm:$false
