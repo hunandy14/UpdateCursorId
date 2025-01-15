@@ -65,10 +65,13 @@ function Update-JsonProperty {
                 throw "Property '$($PropertyKeyPair.Key)' does not exist in the JSON file"
             }
             
-            # 更新值
-            $oldValue = $storageContent.$($PropertyKeyPair.Key)
+            # 取得屬性名稱和值
+            $keyName = $PropertyKeyPair.Key
             $newValue = $PropertyKeyPair.Value
-            $storageContent.$($PropertyKeyPair.Key) = $newValue
+            $oldValue = $storageContent.$keyName
+            
+            # 更新值
+            $storageContent.$keyName = $newValue
             
             # 顯示更新內容
             Write-Host "[" -NoNewline -ForegroundColor DarkGray
@@ -77,7 +80,7 @@ function Update-JsonProperty {
             Write-Host " Preparing to update property..." -ForegroundColor DarkGray
             
             Write-Host "  [" -NoNewline -ForegroundColor DarkGray
-            Write-Host $PropertyKeyPair.Key -NoNewline -ForegroundColor Yellow
+            Write-Host $keyName -NoNewline -ForegroundColor Yellow
             Write-Host "]" -ForegroundColor DarkGray
             
             Write-Host "    Current  : " -NoNewline -ForegroundColor DarkGray
