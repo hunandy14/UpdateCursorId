@@ -2,6 +2,46 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# 用於輸出統一格式狀態訊息的函式
+function Write-StatusMessage {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Status,
+        
+        [Parameter(Mandatory)]
+        [string]$Message,
+        
+        [Parameter()]
+        [string]$Detail,
+        
+        [Parameter()]
+        [string]$DetailPrefix = "",
+        
+        [Parameter()]
+        [System.ConsoleColor]$StatusColor = 'Blue',
+        
+        [Parameter()]
+        [System.ConsoleColor]$MessageColor = 'DarkGray',
+        
+        [Parameter()]
+        [System.ConsoleColor]$DetailColor = 'Cyan'
+    )
+    
+    # 輸出狀態標記
+    Write-Host "[" -NoNewline -ForegroundColor DarkGray
+    Write-Host $Status -NoNewline -ForegroundColor $StatusColor
+    Write-Host "] " -NoNewline -ForegroundColor DarkGray
+    
+    # 輸出主要訊息
+    Write-Host $Message -ForegroundColor $MessageColor
+    
+    # 如果有詳細資訊，則輸出
+    if ($Detail) {
+        Write-Host "  $DetailPrefix" -NoNewline -ForegroundColor $MessageColor
+        Write-Host $Detail -ForegroundColor $DetailColor
+    }
+}
+
 # 生成 Cursor ID 的主要函式
 function New-CursorId {
     # 生成随机 ID
@@ -51,12 +91,10 @@ function Update-JsonProperty {
         $storageContent = Get-Content $Path -Raw | ConvertFrom-Json
         
         # 顯示目標檔案
-        Write-Host "[" -NoNewline -ForegroundColor DarkGray
-        Write-Host "TARGET" -NoNewline -ForegroundColor Blue
-        Write-Host "] " -NoNewline -ForegroundColor DarkGray
-        Write-Host "Processing file:" -ForegroundColor DarkGray
-        Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
-        Write-Host $Path -ForegroundColor Cyan
+        Write-StatusMessage `
+            -Status "TARGET" `
+            -Message "Processing file:" `
+            -DetailPrefix "Path: " -Detail $Path
         Write-Host ""
     } 
     
@@ -76,28 +114,22 @@ function Update-JsonProperty {
             $storageContent.$keyName = $newValue
             
             # 顯示更新內容
-            Write-Host "[" -NoNewline -ForegroundColor DarkGray
-            Write-Host "STAGE" -NoNewline -ForegroundColor DarkCyan
-            Write-Host "]" -NoNewline -ForegroundColor DarkGray
-            Write-Host " Preparing to update property..." -ForegroundColor DarkGray
-            
+            Write-StatusMessage `
+                -Status "STAGE" -StatusColor DarkCyan `
+                -Message "Preparing to update property..."
             Write-Host "  [" -NoNewline -ForegroundColor DarkGray
             Write-Host $keyName -NoNewline -ForegroundColor Yellow
             Write-Host "]" -ForegroundColor DarkGray
-            
             Write-Host "    Current  : " -NoNewline -ForegroundColor DarkGray
             Write-Host $oldValue -ForegroundColor DarkGray
-            
             Write-Host "    Update to: " -NoNewline -ForegroundColor DarkGray
             Write-Host "$newValue`n" -ForegroundColor DarkYellow
         }
         catch {
-            Write-Host "[" -NoNewline -ForegroundColor DarkGray
-            Write-Host "FAILED" -NoNewline -ForegroundColor Red
-            Write-Host "] " -NoNewline -ForegroundColor DarkGray
-            Write-Host "Failed to update property" -ForegroundColor DarkGray
-            Write-Host "  Error: " -NoNewline -ForegroundColor DarkGray
-            Write-Host $_.Exception.Message -ForegroundColor Red
+            Write-StatusMessage `
+                -Status "FAILED" -StatusColor Red `
+                -Message "Failed to update property" `
+                -DetailPrefix "Error: " -Detail $_.Exception.Message
             throw
         }
     } 
@@ -113,39 +145,31 @@ function Update-JsonProperty {
             try {
                 # 保存到文件
                 $storageContent | ConvertTo-Json -Depth 10 | Set-Content $Path -Encoding UTF8
-                Write-Host "[" -NoNewline -ForegroundColor DarkGray
-                Write-Host "COMMIT" -NoNewline -ForegroundColor Green
-                Write-Host "] " -NoNewline -ForegroundColor DarkGray
-                Write-Host "All changes have been saved to file" -ForegroundColor DarkGray
-                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
-                Write-Host $Path -ForegroundColor Cyan
+                Write-StatusMessage `
+                    -Status "COMMIT" -StatusColor Green `
+                    -Message "All changes have been saved to file" `
+                    -DetailPrefix "Path: " -Detail $Path
             }
             catch {
-                Write-Host "[" -NoNewline -ForegroundColor DarkGray
-                Write-Host "FAILED" -NoNewline -ForegroundColor Red
-                Write-Host "]" -NoNewline -ForegroundColor DarkGray
-                Write-Host " Failed to save changes" -ForegroundColor DarkGray
-                Write-Host "  Error: " -NoNewline -ForegroundColor DarkGray
-                Write-Host $_.Exception.Message -ForegroundColor Red
+                Write-StatusMessage `
+                    -Status "FAILED" -StatusColor Red `
+                    -Message "Failed to save changes" `
+                    -DetailPrefix "Error: " -Detail $_.Exception.Message
                 throw
             }
         }
         else {
             if ($WhatIfPreference) {
-                Write-Host "[" -NoNewline -ForegroundColor DarkGray
-                Write-Host "WHATIF" -NoNewline -ForegroundColor Magenta
-                Write-Host "] " -NoNewline -ForegroundColor DarkGray
-                Write-Host "No changes were made to the file (WhatIf mode is enabled)" -ForegroundColor DarkGray
-                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
-                Write-Host $Path -ForegroundColor Cyan
+                Write-StatusMessage `
+                    -Status "WHATIF" -StatusColor Magenta `
+                    -Message "No changes were made to the file (WhatIf mode is enabled)" `
+                    -DetailPrefix "Path: " -Detail $Path
             }
             else {
-                Write-Host "[" -NoNewline -ForegroundColor DarkGray
-                Write-Host "ABORT" -NoNewline -ForegroundColor Yellow
-                Write-Host "] " -NoNewline -ForegroundColor DarkGray
-                Write-Host "Operation cancelled by user" -ForegroundColor Red
-                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
-                Write-Host $Path -ForegroundColor Cyan
+                Write-StatusMessage `
+                    -Status "ABORT" -StatusColor Yellow `
+                    -Message "Operation cancelled by user" `
+                    -DetailPrefix "Path: " -Detail $Path
             }
         }
     }
@@ -157,7 +181,7 @@ function Update-CursorId {
 }
 
 # 生成新的 ID 並更新測試用 storage.json
-New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
+# New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -Confirm:$false
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json")
 
