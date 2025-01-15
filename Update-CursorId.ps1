@@ -50,12 +50,14 @@ function Update-JsonProperty {
         $Path = [IO.Path]::GetFullPath($Path)
         $storageContent = Get-Content $Path -Raw | ConvertFrom-Json
         
-        if ($WhatIfPreference) {
-            Write-Host "`n【Preview Changes】" -ForegroundColor Magenta
-            Write-Host "Target File: " -NoNewline
-            Write-Host $Path -ForegroundColor Cyan
-            Write-Host ""
-        }
+        # 顯示目標檔案
+        Write-Host "[" -NoNewline -ForegroundColor DarkGray
+        Write-Host "TARGET" -NoNewline -ForegroundColor Blue
+        Write-Host "] " -NoNewline -ForegroundColor DarkGray
+        Write-Host "Processing file:" -ForegroundColor DarkGray
+        Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
+        Write-Host $Path -ForegroundColor Cyan
+        Write-Host ""
     } 
     
     process {
@@ -128,6 +130,24 @@ function Update-JsonProperty {
                 throw
             }
         }
+        else {
+            if ($WhatIfPreference) {
+                Write-Host "[" -NoNewline -ForegroundColor DarkGray
+                Write-Host "WHATIF" -NoNewline -ForegroundColor Magenta
+                Write-Host "] " -NoNewline -ForegroundColor DarkGray
+                Write-Host "No changes were made to the file (WhatIf mode is enabled)" -ForegroundColor DarkGray
+                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
+                Write-Host $Path -ForegroundColor Cyan
+            }
+            else {
+                Write-Host "[" -NoNewline -ForegroundColor DarkGray
+                Write-Host "ABORT" -NoNewline -ForegroundColor Yellow
+                Write-Host "] " -NoNewline -ForegroundColor DarkGray
+                Write-Host "Operation cancelled by user" -ForegroundColor Red
+                Write-Host "  Path: " -NoNewline -ForegroundColor DarkGray
+                Write-Host $Path -ForegroundColor Cyan
+            }
+        }
     }
 }
 
@@ -137,9 +157,10 @@ function Update-CursorId {
 }
 
 # 生成新的 ID 並更新測試用 storage.json
-# New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
+New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -WhatIf
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json") -Confirm:$false
 # New-CursorId | Update-JsonProperty -Path (Join-Path $PSScriptRoot "storage.json")
 
 # 生成新的 ID 並更新 Cursor 的 storage.json
 # New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA "\Cursor\User\globalStorage\storage.json") -WhatIf
+# New-CursorId | Update-JsonProperty -Path (Join-Path $env:APPDATA "\Cursor\User\globalStorage\storage.json")
