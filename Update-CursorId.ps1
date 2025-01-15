@@ -39,13 +39,15 @@ function Update-JsonProperty {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [PSCustomObject]$KeyValuePair,
+        [PSCustomObject]$PropertyKeyPair,
         
-        [Parameter()]
+        [Parameter(Mandatory, Position = 0)]
         [string]$Path
     )
     
     begin {
+        [IO.Directory]::SetCurrentDirectory(((Get-Location -PSProvider FileSystem).ProviderPath))
+        $Path = [IO.Path]::GetFullPath($Path)
         $storageContent = Get-Content $Path -Raw | ConvertFrom-Json
         
         if ($WhatIfPreference) {
@@ -59,14 +61,14 @@ function Update-JsonProperty {
     process {
         try {
             # 驗證屬性是否存在
-            if (-not $storageContent.PSObject.Properties.Name.Contains($KeyValuePair.Key)) {
-                throw "Property '$($KeyValuePair.Key)' does not exist in the JSON file"
+            if (-not $storageContent.PSObject.Properties.Name.Contains($PropertyKeyPair.Key)) {
+                throw "Property '$($PropertyKeyPair.Key)' does not exist in the JSON file"
             }
             
             # 更新值
-            $oldValue = $storageContent.$($KeyValuePair.Key)
-            $newValue = $KeyValuePair.Value
-            $storageContent.$($KeyValuePair.Key) = $newValue
+            $oldValue = $storageContent.$($PropertyKeyPair.Key)
+            $newValue = $PropertyKeyPair.Value
+            $storageContent.$($PropertyKeyPair.Key) = $newValue
             
             # 顯示更新內容
             Write-Host "[" -NoNewline -ForegroundColor DarkGray
@@ -75,7 +77,7 @@ function Update-JsonProperty {
             Write-Host " Preparing to update property..." -ForegroundColor DarkGray
             
             Write-Host "  [" -NoNewline -ForegroundColor DarkGray
-            Write-Host $KeyValuePair.Key -NoNewline -ForegroundColor Yellow
+            Write-Host $PropertyKeyPair.Key -NoNewline -ForegroundColor Yellow
             Write-Host "]" -ForegroundColor DarkGray
             
             Write-Host "    Current  : " -NoNewline -ForegroundColor DarkGray
